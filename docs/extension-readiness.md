@@ -6,10 +6,10 @@ A new card effect or small rule change. I would start in `CardRules` and `Game.a
 
 ## Where to edit
 
-- play legality: `CardRules.isLegal`
-- what happens after a card: `Game.applyCardEffect`
-- bot picks: `BotPlayer.chooseCard`
-- deck contents: `Deck.newShuffledDeck`
+- play legality: `CardRules` / `CardRulesService`
+- what happens after a card: `GameService.applyCardEffect`
+- bot picks: `BotPlayer` / `BotPlayerService`
+- deck contents: `DeckService.newShuffledDeck`
 
 ## Still annoying to change
 

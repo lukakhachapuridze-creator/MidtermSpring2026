@@ -1,8 +1,14 @@
 import java.util.ArrayList;
 import java.util.Scanner;
 
-public class ConsoleInput {
-    public static int askCard(Scanner scanner, ArrayList<String> hand, String upCard, String calledColor) {
+public class ConsoleInputService implements ConsoleInput {
+    CardRules rules;
+
+    public ConsoleInputService(CardRules rules) {
+        this.rules = rules;
+    }
+
+    public int askCard(Scanner scanner, ArrayList<String> hand, String upCard, String calledColor) {
         while (true) {
             System.out.print("Choose card index/code or draw: ");
             String input = scanner.nextLine().trim().toUpperCase();
@@ -18,7 +24,7 @@ public class ConsoleInput {
             }
             for (int i = 0; i < hand.size(); i++) {
                 if (hand.get(i).equals(input)) {
-                    if (CardRules.isLegal(hand.get(i), upCard, calledColor)) {
+                    if (rules.isLegal(hand.get(i), upCard, calledColor)) {
                         return i;
                     }
                     System.out.println("That card is not legal.");
@@ -28,21 +34,13 @@ public class ConsoleInput {
         }
     }
 
-    public static String askColor(Scanner scanner) {
+    public String askColor(Scanner scanner) {
         while (true) {
             System.out.print("Call color R/Y/G/B: ");
             String input = scanner.nextLine().trim().toUpperCase();
-            if (input.equals("R")) {
-                return "R";
-            }
-            if (input.equals("Y")) {
-                return "Y";
-            }
-            if (input.equals("G")) {
-                return "G";
-            }
-            if (input.equals("B")) {
-                return "B";
+            CardColor color = CardColor.fromCode(input);
+            if (color != CardColor.NONE) {
+                return color.getCode();
             }
             System.out.println("Bad color.");
         }

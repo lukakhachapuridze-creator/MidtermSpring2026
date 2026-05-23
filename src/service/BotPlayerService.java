@@ -1,12 +1,18 @@
 import java.util.ArrayList;
 
-public class BotPlayer {
-    public static int chooseCard(ArrayList<String> hand, String upCard, String calledColor) {
-        String[] prefer = {"DRAW_TWO", "SKIP", "NUMBER"};
+public class BotPlayerService implements BotPlayer {
+    CardRules rules;
+
+    public BotPlayerService(CardRules rules) {
+        this.rules = rules;
+    }
+
+    public int chooseCard(ArrayList<String> hand, String upCard, String calledColor) {
+        CardRank[] prefer = {CardRank.DRAW_TWO, CardRank.SKIP, CardRank.NUMBER};
         for (int p = 0; p < prefer.length; p++) {
             for (int i = 0; i < hand.size(); i++) {
                 String card = hand.get(i);
-                if (CardRules.rank(card).equals(prefer[p]) && CardRules.isLegal(card, upCard, calledColor)) {
+                if (rules.rankOf(card) == prefer[p] && rules.isLegal(card, upCard, calledColor)) {
                     return i;
                 }
             }
@@ -19,20 +25,20 @@ public class BotPlayer {
         return -1;
     }
 
-    public static String chooseColor(ArrayList<String> hand) {
+    public String chooseColor(ArrayList<String> hand) {
         int r = 0;
         int y = 0;
         int g = 0;
         int b = 0;
         for (int i = 0; i < hand.size(); i++) {
-            String c = CardRules.color(hand.get(i));
-            if (c.equals("R")) {
+            CardColor c = rules.colorOf(hand.get(i));
+            if (c == CardColor.R) {
                 r++;
-            } else if (c.equals("Y")) {
+            } else if (c == CardColor.Y) {
                 y++;
-            } else if (c.equals("G")) {
+            } else if (c == CardColor.G) {
                 g++;
-            } else if (c.equals("B")) {
+            } else if (c == CardColor.B) {
                 b++;
             }
         }

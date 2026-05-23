@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 
-public class Game {
+public class GameService implements Game {
     ArrayList<String> playerNames;
     ArrayList<Boolean> humanPlayers;
     ArrayList<ArrayList<String>> hands;
@@ -10,17 +10,22 @@ public class Game {
     Random random;
     boolean quiet;
     Scanner scanner;
+    CardRules rules;
+    Deck deck;
+    BotPlayer bot;
+    ConsoleInput console;
 
-    ArrayList<String> deck;
+    ArrayList<String> deckCards;
     ArrayList<String> discard;
     int currentPlayer;
     int direction;
     String upCard;
     String calledColor;
 
-    public Game(ArrayList<String> playerNames, ArrayList<Boolean> humanPlayers,
-                ArrayList<ArrayList<String>> hands, int[] scores,
-                Random random, boolean quiet, Scanner scanner) {
+    public GameService(ArrayList<String> playerNames, ArrayList<Boolean> humanPlayers,
+                       ArrayList<ArrayList<String>> hands, int[] scores,
+                       Random random, boolean quiet, Scanner scanner,
+                       CardRules rules, Deck deck, BotPlayer bot, ConsoleInput console) {
         this.playerNames = playerNames;
         this.humanPlayers = humanPlayers;
         this.hands = hands;
@@ -28,10 +33,14 @@ public class Game {
         this.random = random;
         this.quiet = quiet;
         this.scanner = scanner;
+        this.rules = rules;
+        this.deck = deck;
+        this.bot = bot;
+        this.console = console;
     }
 
     public void play() {
-        deck = Deck.newShuffledDeck(random);
+        deckCards = deck.newShuffledDeck(random);
         discard = new ArrayList<String>();
         for (int i = 0; i < hands.size(); i++) {
             hands.get(i).clear();
@@ -63,9 +72,9 @@ public class Game {
 
             int chosen = -1;
             if (humanPlayers.get(currentPlayer).booleanValue()) {
-                chosen = ConsoleInput.askCard(scanner, hand, upCard, calledColor);
+                chosen = console.askCard(scanner, hand, upCard, calledColor);
             } else {
-                chosen = BotPlayer.chooseCard(hand, upCard, calledColor);
+                chosen = bot.chooseCard(hand, upCard, calledColor);
             }
 
             if (chosen == -1) {
@@ -74,7 +83,7 @@ public class Game {
                 if (!quiet) {
                     System.out.println(name + " draws " + drawn);
                 }
-                if (CardRules.isLegal(drawn, upCard, calledColor)) {
+                if (rules.isLegal(drawn, upCard, calledColor)) {
                     if (!humanPlayers.get(currentPlayer).booleanValue()) {
                         chosen = hand.size() - 1;
                     } else {
@@ -99,7 +108,7 @@ public class Game {
 
                 String card = hand.get(chosen);
 
-                if (!CardRules.isLegal(card, upCard, calledColor)) {
+                if (!rules.isLegal(card, upCard, calledColor)) {
                     if (!quiet) {
                         System.out.println(name + " tried illegal card " + card + " and draws a penalty card.");
                     }
@@ -118,9 +127,9 @@ public class Game {
 
                 if (card.equals("W") || card.equals("W4")) {
                     if (humanPlayers.get(currentPlayer).booleanValue()) {
-                        calledColor = ConsoleInput.askColor(scanner);
+                        calledColor = console.askColor(scanner);
                     } else {
-                        calledColor = BotPlayer.chooseColor(hand);
+                        calledColor = bot.chooseColor(hand);
                     }
                     if (!quiet) {
                         System.out.println(name + " calls " + calledColor);
@@ -136,7 +145,7 @@ public class Game {
                     for (int i = 0; i < hands.size(); i++) {
                         if (i != currentPlayer) {
                             for (int j = 0; j < hands.get(i).size(); j++) {
-                                points += CardRules.points(hands.get(i).get(j));
+                                points += rules.points(hands.get(i).get(j));
                             }
                         }
                     }
@@ -158,10 +167,11 @@ public class Game {
     }
 
     void applyCardEffect(String card) {
-        if (CardRules.rank(card).equals("SKIP")) {
+        CardRank rank = rules.rankOf(card);
+        if (rank == CardRank.SKIP) {
             next();
             next();
-        } else if (CardRules.rank(card).equals("REVERSE")) {
+        } else if (rank == CardRank.REVERSE) {
             direction = direction * -1;
             if (playerNames.size() == 2) {
                 next();
@@ -169,7 +179,7 @@ public class Game {
             } else {
                 next();
             }
-        } else if (CardRules.rank(card).equals("DRAW_TWO")) {
+        } else if (rank == CardRank.DRAW_TWO) {
             next();
             hands.get(currentPlayer).add(draw());
             hands.get(currentPlayer).add(draw());
@@ -177,7 +187,7 @@ public class Game {
                 System.out.println(playerNames.get(currentPlayer) + " draws two.");
             }
             next();
-        } else if (CardRules.rank(card).equals("WILD_DRAW_FOUR")) {
+        } else if (rank == CardRank.WILD_DRAW_FOUR) {
             next();
             for (int i = 0; i < 4; i++) {
                 hands.get(currentPlayer).add(draw());
@@ -192,7 +202,7 @@ public class Game {
     }
 
     String draw() {
-        return Deck.draw(deck, discard, random);
+        return deck.draw(deckCards, discard, random);
     }
 
     void next() {

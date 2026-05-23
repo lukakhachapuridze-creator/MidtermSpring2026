@@ -11,11 +11,8 @@ I ran `scripts/test.sh` and the old self test. Then I wrote `CharacterizationTes
 ## What I did
 
 - `CharacterizationTest` - extra checks
-- `CardRules` - color, rank, legal play, points
-- `ConsoleInput` - human typing card/color
-- `BotPlayer` - bot picks
-- `Deck` - shuffle and draw
-- `Game` - one round loop and card effects
+- `model/CardColor` and `CardRank` enums
+- `service/` folder with interfaces and `*Service` classes for rules, deck, bots, console, game
 
 `Main` just does args, players, and final scores now.
 

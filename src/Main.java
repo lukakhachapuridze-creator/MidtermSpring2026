@@ -11,6 +11,11 @@ public class Main {
     static Random random = new Random();
     static Scanner scanner = new Scanner(System.in);
 
+    static CardRules cardRules = new CardRulesService();
+    static Deck deck = new DeckService();
+    static BotPlayer bot = new BotPlayerService(cardRules);
+    static ConsoleInput console = new ConsoleInputService(cardRules);
+
     public static void main(String[] args) {
         int bots = 3;
         int games = 1;
@@ -49,7 +54,8 @@ public class Main {
             if (!quiet) {
                 System.out.println("\n=== Game " + g + " ===");
             }
-            Game game = new Game(playerNames, humanPlayers, hands, scores, random, quiet, scanner);
+            Game game = new GameService(playerNames, humanPlayers, hands, scores, random, quiet, scanner,
+                    cardRules, deck, bot, console);
             game.play();
         }
 

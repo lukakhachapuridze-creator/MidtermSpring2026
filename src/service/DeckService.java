@@ -2,22 +2,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
-public class Deck {
-    public static ArrayList<String> newShuffledDeck(Random random) {
+public class DeckService implements Deck {
+    public ArrayList<String> newShuffledDeck(Random random) {
         ArrayList<String> deck = new ArrayList<String>();
-        String[] colors = {"R", "Y", "G", "B"};
+        CardColor[] colors = {CardColor.R, CardColor.Y, CardColor.G, CardColor.B};
         for (int c = 0; c < colors.length; c++) {
-            deck.add(colors[c] + "0");
+            String code = colors[c].getCode();
+            deck.add(code + "0");
             for (int n = 1; n <= 9; n++) {
-                deck.add(colors[c] + n);
-                deck.add(colors[c] + n);
+                deck.add(code + n);
+                deck.add(code + n);
             }
-            deck.add(colors[c] + "S");
-            deck.add(colors[c] + "S");
-            deck.add(colors[c] + "R");
-            deck.add(colors[c] + "R");
-            deck.add(colors[c] + "+2");
-            deck.add(colors[c] + "+2");
+            deck.add(code + "S");
+            deck.add(code + "S");
+            deck.add(code + "R");
+            deck.add(code + "R");
+            deck.add(code + "+2");
+            deck.add(code + "+2");
         }
         for (int i = 0; i < 4; i++) {
             deck.add("W");
@@ -27,7 +28,7 @@ public class Deck {
         return deck;
     }
 
-    public static String draw(ArrayList<String> deck, ArrayList<String> discard, Random random) {
+    public String draw(ArrayList<String> deck, ArrayList<String> discard, Random random) {
         if (deck.size() == 0) {
             deck.addAll(discard);
             discard.clear();
