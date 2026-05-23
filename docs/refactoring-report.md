@@ -12,7 +12,8 @@ I ran `scripts/test.sh` and the old self test. Then I wrote `CharacterizationTes
 
 - `CharacterizationTest` - extra checks
 - `model/CardColor` and `CardRank` enums
-- `service/` folder with interfaces and `*Service` classes for rules, deck, bots, console, game
+- `interfaces/` for CardRules, Deck, BotPlayer, ConsoleInput, Game
+- `service/` for the `*Service` classes
 
 `Main` just does args, players, and final scores now.
 

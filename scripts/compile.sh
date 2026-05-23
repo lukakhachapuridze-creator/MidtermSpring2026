@@ -3,4 +3,5 @@ set -eu
 
 rm -rf out
 mkdir -p out
-find src -name "*.java" | xargs javac -d out
+
+javac -d out src/Main.java src/CharacterizationTest.java src/model/*.java src/interfaces/*.java src/service/*.java
