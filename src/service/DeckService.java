@@ -1,8 +1,12 @@
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeckService implements Deck {
+    private static final Logger log = LoggerFactory.getLogger(DeckService.class);
+
     public ArrayList<String> newShuffledDeck(Random random) {
         ArrayList<String> deck = new ArrayList<String>();
         CardColor[] colors = {CardColor.R, CardColor.Y, CardColor.G, CardColor.B};
@@ -30,6 +34,7 @@ public class DeckService implements Deck {
 
     public String draw(ArrayList<String> deck, ArrayList<String> discard, Random random) {
         if (deck.size() == 0) {
+            log.debug("reshuffling {} discard cards", discard.size());
             deck.addAll(discard);
             discard.clear();
             Collections.shuffle(deck, random);

@@ -1,7 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
-rm -rf out
-mkdir -p out
-
-javac -d out src/Main.java src/CharacterizationTest.java src/model/*.java src/interfaces/*.java src/service/*.java
+if [ -f ./mvnw ]; then
+  ./mvnw -q compile
+else
+  mvn -q compile
+fi

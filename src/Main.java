@@ -1,8 +1,12 @@
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Main {
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
+
     static ArrayList<String> playerNames = new ArrayList<String>();
     static ArrayList<Boolean> humanPlayers = new ArrayList<Boolean>();
     static ArrayList<ArrayList<String>> hands = new ArrayList<ArrayList<String>>();
@@ -44,13 +48,16 @@ public class Main {
 
         random = new Random(seed);
         setupPlayers(bots, human);
+        log.info("bots={}, games={}, human={}, quiet={}, seed={}", bots, games, human, quiet, seed);
 
         if (playerNames.size() < 2 || playerNames.size() > 4) {
+            log.warn("need 2 to 4 players, got {}", playerNames.size());
             System.out.println("UNO needs 2 to 4 players.");
             return;
         }
 
         for (int g = 1; g <= games; g++) {
+            log.info("game {} of {}", g, games);
             if (!quiet) {
                 System.out.println("\n=== Game " + g + " ===");
             }
@@ -62,6 +69,7 @@ public class Main {
         System.out.println("\nFinal scores:");
         for (int i = 0; i < playerNames.size(); i++) {
             System.out.println(playerNames.get(i) + ": " + scores[i]);
+            log.info("{} finished with {}", playerNames.get(i), scores[i]);
         }
     }
 

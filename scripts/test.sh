@@ -2,5 +2,12 @@
 set -eu
 
 scripts/compile.sh
-java -cp out Main --self-test
-java -cp out CharacterizationTest
+
+if [ -f ./mvnw ]; then
+  MVN=./mvnw
+else
+  MVN=mvn
+fi
+
+$MVN -q exec:java -Dexec.args="--self-test"
+$MVN -q exec:java -Dexec.mainClass=CharacterizationTest

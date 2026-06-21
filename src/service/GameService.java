@@ -1,8 +1,12 @@
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GameService implements Game {
+    private static final Logger log = LoggerFactory.getLogger(GameService.class);
+
     ArrayList<String> playerNames;
     ArrayList<Boolean> humanPlayers;
     ArrayList<ArrayList<String>> hands;
@@ -58,6 +62,7 @@ public class GameService implements Game {
         calledColor = "";
         direction = 1;
         currentPlayer = random.nextInt(playerNames.size());
+        log.info("up card {}, {} goes first", upCard, playerNames.get(currentPlayer));
 
         int guard = 0;
         while (guard < 3000) {
@@ -109,6 +114,7 @@ public class GameService implements Game {
                 String card = hand.get(chosen);
 
                 if (!rules.isLegal(card, upCard, calledColor)) {
+                    log.debug("{} tried illegal {}", name, card);
                     if (!quiet) {
                         System.out.println(name + " tried illegal card " + card + " and draws a penalty card.");
                     }
@@ -150,6 +156,7 @@ public class GameService implements Game {
                         }
                     }
                     scores[currentPlayer] += points;
+                    log.info("{} wins, +{}", name, points);
                     if (!quiet) {
                         System.out.println(name + " wins and scores " + points);
                     }
@@ -161,6 +168,7 @@ public class GameService implements Game {
                 next();
             }
         }
+        log.warn("turn limit reached");
         if (!quiet) {
             System.out.println("Game stopped at safety limit.");
         }
