@@ -26,6 +26,10 @@ public class GameService implements Game {
     String upCard;
     String calledColor;
 
+    boolean hasWinner;
+    String winnerName;
+    int winnerPoints;
+
     public GameService(ArrayList<String> playerNames, ArrayList<Boolean> humanPlayers,
                        ArrayList<ArrayList<String>> hands, int[] scores,
                        Random random, boolean quiet, Scanner scanner,
@@ -44,6 +48,9 @@ public class GameService implements Game {
     }
 
     public void play() {
+        hasWinner = false;
+        winnerName = "";
+        winnerPoints = 0;
         deckCards = deck.newShuffledDeck(random);
         discard = new ArrayList<String>();
         for (int i = 0; i < hands.size(); i++) {
@@ -156,6 +163,9 @@ public class GameService implements Game {
                         }
                     }
                     scores[currentPlayer] += points;
+                    hasWinner = true;
+                    winnerName = name;
+                    winnerPoints = points;
                     log.info("{} wins, +{}", name, points);
                     if (!quiet) {
                         System.out.println(name + " wins and scores " + points);
@@ -172,6 +182,18 @@ public class GameService implements Game {
         if (!quiet) {
             System.out.println("Game stopped at safety limit.");
         }
+    }
+
+    public boolean hasWinner() {
+        return hasWinner;
+    }
+
+    public String winnerName() {
+        return winnerName;
+    }
+
+    public int winnerPoints() {
+        return winnerPoints;
     }
 
     void applyCardEffect(String card) {

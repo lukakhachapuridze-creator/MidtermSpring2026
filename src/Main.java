@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ public class Main {
         int games = 1;
         boolean human = false;
         long seed = System.currentTimeMillis();
+        boolean saveDb = true;
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--bots") && i + 1 < args.length) {
@@ -37,11 +39,16 @@ public class Main {
                 quiet = true;
             } else if (args[i].equals("--seed") && i + 1 < args.length) {
                 seed = Long.parseLong(args[++i]);
+            } else if (args[i].equals("--no-db")) {
+                saveDb = false;
+            } else if (args[i].equals("--history")) {
+                showHistory();
+                return;
             } else if (args[i].equals("--self-test")) {
                 selfTest();
                 return;
             } else if (args[i].equals("--help")) {
-                System.out.println("Usage: scripts/run.sh [--bots N] [--games N] [--human] [--quiet] [--seed N]");
+                System.out.println("Usage: scripts/run.sh [--bots N] [--games N] [--human] [--quiet] [--seed N] [--no-db] [--history]");
                 return;
             }
         }
@@ -56,20 +63,65 @@ public class Main {
             return;
         }
 
-        for (int g = 1; g <= games; g++) {
-            log.info("game {} of {}", g, games);
-            if (!quiet) {
-                System.out.println("\n=== Game " + g + " ===");
-            }
-            Game game = new GameService(playerNames, humanPlayers, hands, scores, random, quiet, scanner,
-                    cardRules, deck, bot, console);
-            game.play();
-        }
+        PersistenceService store = saveDb ? new PersistenceService() : null;
 
-        System.out.println("\nFinal scores:");
-        for (int i = 0; i < playerNames.size(); i++) {
-            System.out.println(playerNames.get(i) + ": " + scores[i]);
-            log.info("{} finished with {}", playerNames.get(i), scores[i]);
+        try {
+            for (int g = 1; g <= games; g++) {
+                log.info("game {} of {}", g, games);
+                if (!quiet) {
+                    System.out.println("\n=== Game " + g + " ===");
+                }
+                Game game = new GameService(playerNames, humanPlayers, hands, scores, random, quiet, scanner,
+                        cardRules, deck, bot, console);
+                game.play();
+                if (store != null && game.hasWinner()) {
+                    store.saveWin(game.winnerName(), game.winnerPoints(), seed, g);
+                }
+            }
+
+            System.out.println("\nFinal scores:");
+            for (int i = 0; i < playerNames.size(); i++) {
+                System.out.println(playerNames.get(i) + ": " + scores[i]);
+                log.info("{} finished with {}", playerNames.get(i), scores[i]);
+            }
+
+            if (store != null) {
+                printStandings(store);
+            }
+        } finally {
+            if (store != null) {
+                store.close();
+            }
+        }
+    }
+
+    static void showHistory() {
+        PersistenceService store = new PersistenceService();
+        try {
+            List<GameRecord> games = store.recentGames(10);
+            if (games.isEmpty()) {
+                System.out.println("No saved games yet.");
+                return;
+            }
+            System.out.println("Recent games:");
+            for (GameRecord game : games) {
+                System.out.println(game.getWinnerName() + " +" + game.getPoints()
+                        + " (game " + game.getGameNumber() + ", seed " + game.getSeed() + ")");
+            }
+            printStandings(store);
+        } finally {
+            store.close();
+        }
+    }
+
+    static void printStandings(PersistenceService store) {
+        List<PlayerRecord> rows = store.standings();
+        if (rows.isEmpty()) {
+            return;
+        }
+        System.out.println("\nAll-time standings:");
+        for (PlayerRecord row : rows) {
+            System.out.println(row.getName() + ": " + row.getTotalScore());
         }
     }
 
