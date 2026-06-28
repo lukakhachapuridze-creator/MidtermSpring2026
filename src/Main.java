@@ -42,13 +42,22 @@ public class Main {
             } else if (args[i].equals("--no-db")) {
                 saveDb = false;
             } else if (args[i].equals("--history")) {
-                showHistory();
+                showRecentRounds();
+                return;
+            } else if (args[i].equals("--recent-games")) {
+                showRecentGames();
+                return;
+            } else if (args[i].equals("--wins")) {
+                showWinCounts();
+                return;
+            } else if (args[i].equals("--top-scores")) {
+                showTopScores();
                 return;
             } else if (args[i].equals("--self-test")) {
                 selfTest();
                 return;
             } else if (args[i].equals("--help")) {
-                System.out.println("Usage: scripts/run.sh [--bots N] [--games N] [--human] [--quiet] [--seed N] [--no-db] [--history]");
+                printHelp();
                 return;
             }
         }
@@ -66,6 +75,11 @@ public class Main {
         PersistenceService store = saveDb ? new PersistenceService() : null;
 
         try {
+            Long gameId = null;
+            if (store != null) {
+                gameId = store.startGame(seed, playerNames, humanPlayers);
+            }
+
             for (int g = 1; g <= games; g++) {
                 log.info("game {} of {}", g, games);
                 if (!quiet) {
@@ -75,7 +89,7 @@ public class Main {
                         cardRules, deck, bot, console);
                 game.play();
                 if (store != null && game.hasWinner()) {
-                    store.saveWin(game.winnerName(), game.winnerPoints(), seed, g);
+                    store.saveRound(gameId, g, game.winnerName(), game.winnerPoints(), playerNames, humanPlayers);
                 }
             }
 
@@ -95,7 +109,29 @@ public class Main {
         }
     }
 
-    static void showHistory() {
+    static void showRecentRounds() {
+        PersistenceService store = new PersistenceService();
+        try {
+            List<RoundRecord> rounds = store.recentRounds(10);
+            if (rounds.isEmpty()) {
+                System.out.println("No saved rounds yet.");
+                return;
+            }
+            System.out.println("Recent rounds:");
+            for (RoundRecord round : rounds) {
+                System.out.println("round " + round.getRoundNumber()
+                        + " game " + round.getGame().getId()
+                        + " seed " + round.getGame().getSeed()
+                        + " winner " + round.getWinner().getName()
+                        + " +" + round.getWinnerPoints());
+            }
+            printStandings(store);
+        } finally {
+            store.close();
+        }
+    }
+
+    static void showRecentGames() {
         PersistenceService store = new PersistenceService();
         try {
             List<GameRecord> games = store.recentGames(10);
@@ -105,10 +141,45 @@ public class Main {
             }
             System.out.println("Recent games:");
             for (GameRecord game : games) {
-                System.out.println(game.getWinnerName() + " +" + game.getPoints()
-                        + " (game " + game.getGameNumber() + ", seed " + game.getSeed() + ")");
+                System.out.println("game " + game.getId()
+                        + " seed " + game.getSeed()
+                        + " players " + game.getPlayerCount()
+                        + " rounds " + game.getRounds().size());
             }
-            printStandings(store);
+        } finally {
+            store.close();
+        }
+    }
+
+    static void showWinCounts() {
+        PersistenceService store = new PersistenceService();
+        try {
+            List<WinCountRow> rows = store.playerWinCounts();
+            if (rows.isEmpty()) {
+                System.out.println("No wins recorded yet.");
+                return;
+            }
+            System.out.println("Win counts:");
+            for (WinCountRow row : rows) {
+                System.out.println(row.getName() + ": " + row.getWins());
+            }
+        } finally {
+            store.close();
+        }
+    }
+
+    static void showTopScores() {
+        PersistenceService store = new PersistenceService();
+        try {
+            List<TopScoreRow> rows = store.highestScores(10);
+            if (rows.isEmpty()) {
+                System.out.println("No scores recorded yet.");
+                return;
+            }
+            System.out.println("Top scores:");
+            for (TopScoreRow row : rows) {
+                System.out.println(row.getName() + ": " + row.getTotalScore());
+            }
         } finally {
             store.close();
         }
@@ -121,8 +192,13 @@ public class Main {
         }
         System.out.println("\nAll-time standings:");
         for (PlayerRecord row : rows) {
-            System.out.println(row.getName() + ": " + row.getTotalScore());
+            System.out.println(row.getName() + ": " + row.getTotalScore() + " (" + row.getWins() + " wins)");
         }
+    }
+
+    static void printHelp() {
+        System.out.println("Usage: [--bots N] [--games N] [--human] [--quiet] [--seed N] [--no-db]");
+        System.out.println("Reports: [--history] [--recent-games] [--wins] [--top-scores]");
     }
 
     static void setupPlayers(int bots, boolean human) {

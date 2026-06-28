@@ -3,8 +3,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "games")
@@ -14,41 +17,25 @@ public class GameRecord {
     private Long id;
 
     @Column(nullable = false)
-    private String winnerName;
-
-    @Column(nullable = false)
-    private int points;
-
-    @Column(nullable = false)
     private long seed;
 
     @Column(nullable = false)
-    private int gameNumber;
+    private Instant startedAt;
 
     @Column(nullable = false)
-    private Instant playedAt;
+    private int playerCount;
+
+    @Column(nullable = false)
+    private boolean humanIncluded;
+
+    @OneToMany(mappedBy = "game")
+    private List<RoundRecord> rounds = new ArrayList<>();
 
     public GameRecord() {
     }
 
     public Long getId() {
         return id;
-    }
-
-    public String getWinnerName() {
-        return winnerName;
-    }
-
-    public void setWinnerName(String winnerName) {
-        this.winnerName = winnerName;
-    }
-
-    public int getPoints() {
-        return points;
-    }
-
-    public void setPoints(int points) {
-        this.points = points;
     }
 
     public long getSeed() {
@@ -59,19 +46,31 @@ public class GameRecord {
         this.seed = seed;
     }
 
-    public int getGameNumber() {
-        return gameNumber;
+    public Instant getStartedAt() {
+        return startedAt;
     }
 
-    public void setGameNumber(int gameNumber) {
-        this.gameNumber = gameNumber;
+    public void setStartedAt(Instant startedAt) {
+        this.startedAt = startedAt;
     }
 
-    public Instant getPlayedAt() {
-        return playedAt;
+    public int getPlayerCount() {
+        return playerCount;
     }
 
-    public void setPlayedAt(Instant playedAt) {
-        this.playedAt = playedAt;
+    public void setPlayerCount(int playerCount) {
+        this.playerCount = playerCount;
+    }
+
+    public boolean isHumanIncluded() {
+        return humanIncluded;
+    }
+
+    public void setHumanIncluded(boolean humanIncluded) {
+        this.humanIncluded = humanIncluded;
+    }
+
+    public List<RoundRecord> getRounds() {
+        return rounds;
     }
 }

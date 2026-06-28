@@ -16,14 +16,22 @@ public class PlayerRecord {
     private String name;
 
     @Column(nullable = false)
+    private boolean human;
+
+    @Column(nullable = false)
     private int totalScore;
+
+    @Column(nullable = false)
+    private int wins;
 
     public PlayerRecord() {
     }
 
-    public PlayerRecord(String name) {
+    public PlayerRecord(String name, boolean human) {
         this.name = name;
+        this.human = human;
         this.totalScore = 0;
+        this.wins = 0;
     }
 
     public Long getId() {
@@ -38,11 +46,27 @@ public class PlayerRecord {
         this.name = name;
     }
 
+    public boolean isHuman() {
+        return human;
+    }
+
+    public void setHuman(boolean human) {
+        this.human = human;
+    }
+
     public int getTotalScore() {
         return totalScore;
     }
 
     public void setTotalScore(int totalScore) {
         this.totalScore = totalScore;
+    }
+
+    public int getWins() {
+        return wins;
+    }
+
+    public void setWins(int wins) {
+        this.wins = wins;
     }
 }

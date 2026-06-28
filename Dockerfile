@@ -4,9 +4,10 @@ WORKDIR /app
 
 COPY pom.xml ./
 COPY src src
+COPY test test
 COPY resources resources
 
-RUN mvn -q package -DskipTests
+RUN mvn -q test package
 
 FROM eclipse-temurin:17-jre
 
