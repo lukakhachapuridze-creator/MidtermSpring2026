@@ -4,22 +4,92 @@ This is a standalone CLI UNO-like game.
 
 The code is written as plausible feature-grown Java: almost everything lives in one procedural `Main` class. It works, but it has mixed responsibilities, duplicated rule logic, primitive-heavy card handling, global state, and condition-heavy gameplay code. The goal is to refactor it safely, not rewrite it.
 
-## Compile
+## Maven
+
+Compile:
+
+```bash
+./mvnw compile
+```
+
+Run characterization tests:
+
+```bash
+./mvnw test
+```
+
+Test reports are written to `target/surefire-reports/`.
+
+Package:
+
+```bash
+./mvnw package
+```
+
+Run bot games:
+
+```bash
+./mvnw exec:java -Dexec.args="--bots 3 --games 5 --quiet"
+```
+
+Run interactive game:
+
+```bash
+./mvnw exec:java -Dexec.args="--human --bots 2 --games 1"
+```
+
+Run the packaged jar:
+
+```bash
+java -jar target/midterm-uno-cli-1.0-SNAPSHOT.jar --bots 3 --games 5 --quiet
+```
+
+On Windows, use `mvnw.cmd` instead of `./mvnw`.
+
+## Docker
+
+Build:
+
+```bash
+docker build -t midterm-uno-cli .
+```
+
+Run bot games:
+
+```bash
+docker run --rm midterm-uno-cli --bots 3 --games 5 --quiet
+```
+
+Run interactive game:
+
+```bash
+docker run --rm -it midterm-uno-cli --human --bots 2 --games 1
+```
+
+## Shell Scripts
+
+Compile:
 
 ```bash
 scripts/compile.sh
 ```
 
-## Run Bot Games
+Run bot games:
 
 ```bash
 scripts/run.sh --bots 3 --games 5 --quiet
 ```
 
-## Run Interactive Game
+Run interactive game:
 
 ```bash
 scripts/run.sh --human --bots 2 --games 1
+```
+
+Characterization checks:
+
+```bash
+scripts/test.sh
 ```
 
 Card input examples:
@@ -32,12 +102,6 @@ G+2  green draw two
 W    wild
 W4   wild draw four
 draw draw a card
-```
-
-## Characterization Checks
-
-```bash
-scripts/test.sh
 ```
 
 ## Submission

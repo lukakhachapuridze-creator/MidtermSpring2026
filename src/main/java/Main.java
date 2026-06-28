@@ -90,6 +90,6 @@ public class Main {
     }
 
     static void selfTest() {
-        CharacterizationTest.main(new String[0]);
+        CharacterizationChecks.runAll();
     }
 }

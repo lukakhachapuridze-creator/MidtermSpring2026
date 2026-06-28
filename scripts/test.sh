@@ -1,13 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
-scripts/compile.sh
-
 if [ -f ./mvnw ]; then
-  MVN=./mvnw
+  ./mvnw -q test
 else
-  MVN=mvn
+  mvn -q test
 fi
-
-$MVN -q exec:java -Dexec.args="--self-test"
-$MVN -q exec:java -Dexec.mainClass=CharacterizationTest
