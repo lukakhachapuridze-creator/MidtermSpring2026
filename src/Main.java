@@ -43,6 +43,7 @@ public class Main {
         int games = 1;
         boolean human = false;
         int humans = 0;
+        String humanName = "You";
         long seed = System.currentTimeMillis();
         boolean saveDb = true;
         GameOptions gameOptions = GameOptions.defaults();
@@ -57,6 +58,12 @@ public class Main {
                 human = true;
             } else if (args[i].equals("--humans") && i + 1 < args.length) {
                 humans = Integer.parseInt(args[++i]);
+            } else if (args[i].equals("--name") && i + 1 < args.length) {
+                humanName = args[++i].trim();
+                if (humanName.isEmpty()) {
+                    System.out.println("Player name cannot be empty.");
+                    return;
+                }
             } else if (args[i].equals("--quiet")) {
                 quiet = true;
             } else if (args[i].equals("--seed") && i + 1 < args.length) {
@@ -99,8 +106,12 @@ public class Main {
             }
         }
 
+        if (!human && !humanName.equals("You")) {
+            human = true;
+        }
+
         random = new Random(seed);
-        setupPlayers(bots, human, humans);
+        setupPlayers(bots, human, humans, humanName);
         log.info("bots={}, games={}, human={}, quiet={}, seed={}", bots, games, human, quiet, seed);
 
         if (playerNames.size() < 2 || playerNames.size() > 4) {
@@ -240,7 +251,7 @@ public class Main {
     }
 
     static void printHelp() {
-        System.out.println("Usage: [--bots N] [--games N] [--human] [--humans N] [--quiet] [--seed N] [--no-db]");
+        System.out.println("Usage: [--bots N] [--games N] [--human] [--humans N] [--name NAME] [--quiet] [--seed N] [--no-db]");
         System.out.println("       [--target N] [--no-stack] [--no-challenge] [--no-uno-penalty]");
         System.out.println("       [--no-opening-effect] [--seven-zero] [--jump-in]");
         System.out.println("Reports: [--history] [--recent-games] [--wins] [--top-scores]");
@@ -255,7 +266,7 @@ public class Main {
         return false;
     }
 
-    static void setupPlayers(int bots, boolean human, int humans) {
+    static void setupPlayers(int bots, boolean human, int humans, String humanName) {
         playerNames.clear();
         humanPlayers.clear();
         hands.clear();
@@ -263,7 +274,7 @@ public class Main {
             humans = 1;
         }
         for (int i = 0; i < humans; i++) {
-            playerNames.add(i == 0 ? "You" : "Human" + (i + 1));
+            playerNames.add(i == 0 ? humanName : "Human" + (i + 1));
             humanPlayers.add(Boolean.TRUE);
             hands.add(new ArrayList<String>());
         }
