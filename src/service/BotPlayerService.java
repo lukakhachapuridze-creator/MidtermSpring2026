@@ -13,18 +13,29 @@ public class BotPlayerService implements BotPlayer {
         this.rules = rules;
     }
 
-    public int chooseCard(ArrayList<String> hand, String upCard, String calledColor) {
+    public int chooseCard(ArrayList<String> hand, String upCard, String calledColor,
+                          int pendingDraws, CardRank pendingDrawRank) {
+        if (pendingDraws > 0) {
+            for (int i = 0; i < hand.size(); i++) {
+                if (rules.canStackDraw(hand.get(i), pendingDraws, pendingDrawRank)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
         CardRank[] prefer = {CardRank.DRAW_TWO, CardRank.SKIP, CardRank.NUMBER};
         for (int p = 0; p < prefer.length; p++) {
             for (int i = 0; i < hand.size(); i++) {
                 String card = hand.get(i);
-                if (rules.rankOf(card) == prefer[p] && rules.isLegal(card, upCard, calledColor)) {
+                if (rules.rankOf(card) == prefer[p] && rules.isLegal(card, upCard, calledColor, hand)) {
                     return i;
                 }
             }
         }
         for (int i = 0; i < hand.size(); i++) {
-            if (hand.get(i).startsWith("W")) {
+            String card = hand.get(i);
+            if (card.startsWith("W") && rules.isLegal(card, upCard, calledColor, hand)) {
                 return i;
             }
         }
@@ -57,5 +68,34 @@ public class BotPlayerService implements BotPlayer {
         } else {
             return "B";
         }
+    }
+
+    public boolean willChallenge() {
+        return false;
+    }
+
+    public int chooseSwapTarget(ArrayList<ArrayList<String>> hands, int currentPlayer) {
+        int best = -1;
+        int bestSize = -1;
+        for (int i = 0; i < hands.size(); i++) {
+            if (i == currentPlayer) {
+                continue;
+            }
+            int size = hands.get(i).size();
+            if (size > bestSize) {
+                bestSize = size;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    public int findJumpInIndex(ArrayList<String> hand, String upCard) {
+        for (int i = 0; i < hand.size(); i++) {
+            if (rules.isJumpInMatch(hand.get(i), upCard)) {
+                return i;
+            }
+        }
+        return -1;
     }
 }

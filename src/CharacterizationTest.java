@@ -2,6 +2,8 @@ import interfaces.BotPlayer;
 import interfaces.CardRules;
 import interfaces.Deck;
 import model.CardRank;
+import java.util.ArrayList;
+import java.util.List;
 import service.BotPlayerService;
 import service.CardRulesService;
 import service.DeckService;
@@ -81,14 +83,14 @@ public class CharacterizationTest {
         hand.add("R4");
         hand.add("W");
         total++;
-        if (bot.chooseCard(hand, "R9", "") == 1) passed++;
+        if (bot.chooseCard(hand, "R9", "", 0, null) == 1) passed++;
         else fail("bot prefers number over wild");
 
         hand.clear();
         hand.add("R+2");
         hand.add("R4");
         total++;
-        if (bot.chooseCard(hand, "R9", "") == 0) passed++;
+        if (bot.chooseCard(hand, "R9", "", 0, null) == 0) passed++;
         else fail("bot prefers draw two");
 
         hand.clear();
@@ -111,6 +113,29 @@ public class CharacterizationTest {
         total++;
         if (!rules.isLegal("R5", "W", "")) passed++;
         else fail("wild top needs called color for color cards");
+
+        total++;
+        List<String> w4Hand = new ArrayList<String>();
+        w4Hand.add("G2");
+        w4Hand.add("W4");
+        if (!rules.isLegal("W4", "G9", "", w4Hand)) passed++;
+        else fail("wild draw four needs no color match");
+
+        total++;
+        if (rules.canStackDraw("R+2", 2, CardRank.DRAW_TWO)) passed++;
+        else fail("draw two stack");
+
+        total++;
+        if (rules.canStackDraw("W4", 2, CardRank.DRAW_TWO)) passed++;
+        else fail("wild four stack on draw two");
+
+        total++;
+        if (rules.isJumpInMatch("Y3", "Y3") && !rules.isJumpInMatch("Y3", "R3")) passed++;
+        else fail("jump in match");
+
+        total++;
+        if (rules.isSeven("R7") && rules.isZero("B0")) passed++;
+        else fail("seven zero detect");
 
         System.out.println("Passed " + passed + " of " + total + " characterization checks.");
         if (passed != total) {

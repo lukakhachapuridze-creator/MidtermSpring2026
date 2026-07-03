@@ -19,6 +19,7 @@ import service.BotPlayerService;
 import service.CardRulesService;
 import service.ConsoleInputService;
 import service.DeckService;
+import model.GameOptions;
 import service.GameService;
 
 public class Main {
@@ -41,8 +42,11 @@ public class Main {
         int bots = 3;
         int games = 1;
         boolean human = false;
+        int humans = 0;
         long seed = System.currentTimeMillis();
         boolean saveDb = true;
+        GameOptions gameOptions = GameOptions.defaults();
+        int targetScore = 0;
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--bots") && i + 1 < args.length) {
@@ -51,10 +55,27 @@ public class Main {
                 games = Integer.parseInt(args[++i]);
             } else if (args[i].equals("--human")) {
                 human = true;
+            } else if (args[i].equals("--humans") && i + 1 < args.length) {
+                humans = Integer.parseInt(args[++i]);
             } else if (args[i].equals("--quiet")) {
                 quiet = true;
             } else if (args[i].equals("--seed") && i + 1 < args.length) {
                 seed = Long.parseLong(args[++i]);
+            } else if (args[i].equals("--no-stack")) {
+                gameOptions.stackDraws = false;
+            } else if (args[i].equals("--no-challenge")) {
+                gameOptions.w4Challenge = false;
+            } else if (args[i].equals("--no-uno-penalty")) {
+                gameOptions.unoPenalty = false;
+            } else if (args[i].equals("--no-opening-effect")) {
+                gameOptions.openingCardEffect = false;
+            } else if (args[i].equals("--seven-zero")) {
+                gameOptions.sevenZeroRule = true;
+            } else if (args[i].equals("--jump-in")) {
+                gameOptions.jumpIn = true;
+            } else if (args[i].equals("--target") && i + 1 < args.length) {
+                targetScore = Integer.parseInt(args[++i]);
+                gameOptions.targetScore = targetScore;
             } else if (args[i].equals("--no-db")) {
                 saveDb = false;
             } else if (args[i].equals("--history")) {
@@ -79,7 +100,7 @@ public class Main {
         }
 
         random = new Random(seed);
-        setupPlayers(bots, human);
+        setupPlayers(bots, human, humans);
         log.info("bots={}, games={}, human={}, quiet={}, seed={}", bots, games, human, quiet, seed);
 
         if (playerNames.size() < 2 || playerNames.size() > 4) {
@@ -102,10 +123,16 @@ public class Main {
                     System.out.println("\n=== Game " + g + " ===");
                 }
                 Game game = new GameService(playerNames, humanPlayers, hands, scores, random, quiet, scanner,
-                        cardRules, deck, bot, console);
+                        cardRules, deck, bot, console, gameOptions);
                 game.play();
                 if (store != null && game.hasWinner()) {
                     store.saveRound(gameId, g, game.winnerName(), game.winnerPoints(), playerNames, humanPlayers);
+                }
+                if (targetScore > 0 && hasTargetWinner(targetScore)) {
+                    if (!quiet) {
+                        System.out.println("Target score " + targetScore + " reached.");
+                    }
+                    break;
                 }
             }
 
@@ -213,16 +240,30 @@ public class Main {
     }
 
     static void printHelp() {
-        System.out.println("Usage: [--bots N] [--games N] [--human] [--quiet] [--seed N] [--no-db]");
+        System.out.println("Usage: [--bots N] [--games N] [--human] [--humans N] [--quiet] [--seed N] [--no-db]");
+        System.out.println("       [--target N] [--no-stack] [--no-challenge] [--no-uno-penalty]");
+        System.out.println("       [--no-opening-effect] [--seven-zero] [--jump-in]");
         System.out.println("Reports: [--history] [--recent-games] [--wins] [--top-scores]");
     }
 
-    static void setupPlayers(int bots, boolean human) {
+    static boolean hasTargetWinner(int target) {
+        for (int i = 0; i < playerNames.size(); i++) {
+            if (scores[i] >= target) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static void setupPlayers(int bots, boolean human, int humans) {
         playerNames.clear();
         humanPlayers.clear();
         hands.clear();
-        if (human) {
-            playerNames.add("You");
+        if (human && humans == 0) {
+            humans = 1;
+        }
+        for (int i = 0; i < humans; i++) {
+            playerNames.add(i == 0 ? "You" : "Human" + (i + 1));
             humanPlayers.add(Boolean.TRUE);
             hands.add(new ArrayList<String>());
         }

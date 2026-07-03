@@ -6,6 +6,7 @@ import interfaces.ConsoleInput;
 import interfaces.Deck;
 import interfaces.Game;
 import model.CardRank;
+import model.GameOptions;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
@@ -26,6 +27,7 @@ public class GameService implements Game {
     Deck deck;
     BotPlayer bot;
     ConsoleInput console;
+    GameOptions options;
 
     ArrayList<String> deckCards;
     ArrayList<String> discard;
@@ -33,6 +35,11 @@ public class GameService implements Game {
     int direction;
     String upCard;
     String calledColor;
+    int pendingDraws;
+    CardRank pendingDrawRank;
+    ArrayList<Boolean> unoPenalty;
+    int lastW4Player;
+    boolean lastW4HadColorMatch;
 
     boolean hasWinner;
     String winnerName;
@@ -42,6 +49,15 @@ public class GameService implements Game {
                        ArrayList<ArrayList<String>> hands, int[] scores,
                        Random random, boolean quiet, Scanner scanner,
                        CardRules rules, Deck deck, BotPlayer bot, ConsoleInput console) {
+        this(playerNames, humanPlayers, hands, scores, random, quiet, scanner,
+                rules, deck, bot, console, GameOptions.defaults());
+    }
+
+    public GameService(ArrayList<String> playerNames, ArrayList<Boolean> humanPlayers,
+                       ArrayList<ArrayList<String>> hands, int[] scores,
+                       Random random, boolean quiet, Scanner scanner,
+                       CardRules rules, Deck deck, BotPlayer bot, ConsoleInput console,
+                       GameOptions options) {
         this.playerNames = playerNames;
         this.humanPlayers = humanPlayers;
         this.hands = hands;
@@ -53,12 +69,19 @@ public class GameService implements Game {
         this.deck = deck;
         this.bot = bot;
         this.console = console;
+        this.options = options;
+        this.unoPenalty = new ArrayList<Boolean>();
+        for (int i = 0; i < playerNames.size(); i++) {
+            unoPenalty.add(Boolean.FALSE);
+        }
     }
 
     public void play() {
         hasWinner = false;
         winnerName = "";
         winnerPoints = 0;
+        pendingDraws = 0;
+        pendingDrawRank = null;
         deckCards = deck.newShuffledDeck(random);
         discard = new ArrayList<String>();
         for (int i = 0; i < hands.size(); i++) {
@@ -79,31 +102,66 @@ public class GameService implements Game {
         currentPlayer = random.nextInt(playerNames.size());
         log.info("up card {}, {} goes first", upCard, playerNames.get(currentPlayer));
 
+        if (options.openingCardEffect) {
+            applyOpeningCardEffect(upCard);
+        }
+
         int guard = 0;
         while (guard < 3000) {
             guard++;
+
+            if (tryJumpIn()) {
+                if (hasWinner) {
+                    return;
+                }
+                continue;
+            }
+
             String name = playerNames.get(currentPlayer);
             ArrayList<String> hand = hands.get(currentPlayer);
 
+            if (unoPenalty.get(currentPlayer).booleanValue() && options.unoPenalty) {
+                hand.add(draw());
+                hand.add(draw());
+                unoPenalty.set(currentPlayer, Boolean.FALSE);
+                if (!quiet) {
+                    System.out.println(name + " draws 2 for missing uno.");
+                }
+            }
+
             if (!quiet) {
-                System.out.println("\nUp card: " + upCard + (calledColor.equals("") ? "" : " called " + calledColor));
+                System.out.println("\nUp card: " + upCard + colorSuffix()
+                        + "  direction: " + directionLabel());
                 System.out.println(name + " hand: " + join(hand));
+                if (pendingDraws > 0) {
+                    System.out.println("Pending draw: " + pendingDraws);
+                }
             }
 
             int chosen = -1;
             if (humanPlayers.get(currentPlayer).booleanValue()) {
-                chosen = console.askCard(scanner, hand, upCard, calledColor);
+                chosen = console.askCard(scanner, hand, upCard, calledColor, pendingDraws, pendingDrawRank);
             } else {
-                chosen = bot.chooseCard(hand, upCard, calledColor);
+                chosen = bot.chooseCard(hand, upCard, calledColor, pendingDraws, pendingDrawRank);
             }
 
             if (chosen == -1) {
+                if (pendingDraws > 0) {
+                    drawCards(hand, pendingDraws);
+                    if (!quiet) {
+                        System.out.println(name + " draws " + pendingDraws);
+                    }
+                    pendingDraws = 0;
+                    pendingDrawRank = null;
+                    next();
+                    continue;
+                }
                 String drawn = draw();
                 hand.add(drawn);
                 if (!quiet) {
                     System.out.println(name + " draws " + drawn);
                 }
-                if (rules.isLegal(drawn, upCard, calledColor)) {
+                if (rules.isLegal(drawn, upCard, calledColor, handForLegal(hand))) {
                     if (!humanPlayers.get(currentPlayer).booleanValue()) {
                         chosen = hand.size() - 1;
                     } else {
@@ -117,71 +175,9 @@ public class GameService implements Game {
             }
 
             if (chosen >= 0) {
-                if (chosen >= hand.size()) {
-                    if (!quiet) {
-                        System.out.println(name + " selected an invalid index and draws a penalty card.");
-                    }
-                    hand.add(draw());
-                    next();
-                    continue;
-                }
-
-                String card = hand.get(chosen);
-
-                if (!rules.isLegal(card, upCard, calledColor)) {
-                    log.debug("{} tried illegal {}", name, card);
-                    if (!quiet) {
-                        System.out.println(name + " tried illegal card " + card + " and draws a penalty card.");
-                    }
-                    hand.add(draw());
-                    next();
-                    continue;
-                }
-
-                hand.remove(chosen);
-                discard.add(upCard);
-                upCard = card;
-                calledColor = "";
-                if (!quiet) {
-                    System.out.println(name + " plays " + card);
-                }
-
-                if (card.equals("W") || card.equals("W4")) {
-                    if (humanPlayers.get(currentPlayer).booleanValue()) {
-                        calledColor = console.askColor(scanner);
-                    } else {
-                        calledColor = bot.chooseColor(hand);
-                    }
-                    if (!quiet) {
-                        System.out.println(name + " calls " + calledColor);
-                    }
-                }
-
-                if (hand.size() == 1 && !quiet) {
-                    System.out.println(name + " says UNO!");
-                }
-
-                if (hand.size() == 0) {
-                    int points = 0;
-                    for (int i = 0; i < hands.size(); i++) {
-                        if (i != currentPlayer) {
-                            for (int j = 0; j < hands.get(i).size(); j++) {
-                                points += rules.points(hands.get(i).get(j));
-                            }
-                        }
-                    }
-                    scores[currentPlayer] += points;
-                    hasWinner = true;
-                    winnerName = name;
-                    winnerPoints = points;
-                    log.info("{} wins, +{}", name, points);
-                    if (!quiet) {
-                        System.out.println(name + " wins and scores " + points);
-                    }
+                if (playCardAtIndex(chosen)) {
                     return;
                 }
-
-                applyCardEffect(card);
             } else {
                 next();
             }
@@ -192,25 +188,233 @@ public class GameService implements Game {
         }
     }
 
-    public boolean hasWinner() {
-        return hasWinner;
+    boolean tryJumpIn() {
+        if (!options.jumpIn || pendingDraws > 0 || upCard.startsWith("W")) {
+            return false;
+        }
+        int n = playerNames.size();
+        for (int step = 1; step < n; step++) {
+            int p = normalizePlayer(currentPlayer + step * direction);
+            ArrayList<String> hand = hands.get(p);
+            int idx = bot.findJumpInIndex(hand, upCard);
+            if (idx < 0) {
+                continue;
+            }
+            if (humanPlayers.get(p).booleanValue() && !console.askJumpIn(scanner, upCard)) {
+                continue;
+            }
+            currentPlayer = p;
+            if (!quiet) {
+                System.out.println(playerNames.get(p) + " jumps in with " + upCard);
+            }
+            playCardAtIndex(idx);
+            return true;
+        }
+        return false;
     }
 
-    public String winnerName() {
-        return winnerName;
+    boolean playCardAtIndex(int chosen) {
+        String name = playerNames.get(currentPlayer);
+        ArrayList<String> hand = hands.get(currentPlayer);
+
+        if (chosen >= hand.size()) {
+            if (!quiet) {
+                System.out.println(name + " selected an invalid index and draws a penalty card.");
+            }
+            hand.add(draw());
+            next();
+            return false;
+        }
+
+        String card = hand.get(chosen);
+        ArrayList<String> handBefore = copyHand(hand);
+
+        if (pendingDraws > 0) {
+            if (!rules.canStackDraw(card, pendingDraws, pendingDrawRank)) {
+                if (!quiet) {
+                    System.out.println(name + " cannot stack that card and draws a penalty card.");
+                }
+                hand.add(draw());
+                next();
+                return false;
+            }
+        } else if (!rules.isLegal(card, upCard, calledColor, handForLegal(handBefore))) {
+            log.debug("{} tried illegal {}", name, card);
+            if (!quiet) {
+                System.out.println(name + " tried illegal card " + card + " and draws a penalty card.");
+            }
+            hand.add(draw());
+            next();
+            return false;
+        }
+
+        if (card.equals("W4") && options.w4OnlyWithoutColor) {
+            lastW4Player = currentPlayer;
+            lastW4HadColorMatch = rules.hasMatchingColor(handBefore, upCard, calledColor);
+        }
+
+        hand.remove(chosen);
+        discard.add(upCard);
+        upCard = card;
+        calledColor = "";
+        if (!quiet) {
+            System.out.println(name + " plays " + card);
+        }
+
+        if (card.equals("W") || card.equals("W4")) {
+            if (humanPlayers.get(currentPlayer).booleanValue()) {
+                calledColor = console.askColor(scanner);
+            } else {
+                calledColor = bot.chooseColor(hand);
+            }
+            if (!quiet) {
+                System.out.println(name + " calls " + calledColor);
+            }
+        }
+
+        if (hand.size() == 1) {
+            handleUnoCall(name);
+        }
+
+        if (hand.size() == 0) {
+            finishRound(name);
+            return true;
+        }
+
+        if (options.sevenZeroRule) {
+            if (rules.isSeven(card)) {
+                applySevenSwap();
+            } else if (rules.isZero(card)) {
+                rotateHands();
+            }
+        }
+
+        applyCardEffect(card, handBefore);
+        return false;
     }
 
-    public int winnerPoints() {
-        return winnerPoints;
+    void applySevenSwap() {
+        int target;
+        if (humanPlayers.get(currentPlayer).booleanValue()) {
+            target = console.askSwapTarget(scanner, playerNames, currentPlayer);
+        } else {
+            target = bot.chooseSwapTarget(hands, currentPlayer);
+        }
+        swapHands(currentPlayer, target);
+        if (!quiet) {
+            System.out.println(playerNames.get(currentPlayer) + " swaps hands with "
+                    + playerNames.get(target));
+        }
     }
 
-    void applyCardEffect(String card) {
+    void swapHands(int a, int b) {
+        ArrayList<String> temp = hands.get(a);
+        hands.set(a, hands.get(b));
+        hands.set(b, temp);
+    }
+
+    void rotateHands() {
+        int n = playerNames.size();
+        ArrayList<ArrayList<String>> copies = new ArrayList<ArrayList<String>>();
+        for (int i = 0; i < n; i++) {
+            copies.add(copyHand(hands.get(i)));
+        }
+        for (int i = 0; i < n; i++) {
+            int from = normalizePlayer(i - direction);
+            hands.set(i, copies.get(from));
+        }
+        if (!quiet) {
+            System.out.println("Hands rotated " + directionLabel());
+        }
+    }
+
+    int normalizePlayer(int index) {
+        int n = playerNames.size();
+        while (index >= n) {
+            index -= n;
+        }
+        while (index < 0) {
+            index += n;
+        }
+        return index;
+    }
+
+    void handleUnoCall(String name) {
+        if (!options.unoPenalty) {
+            if (!quiet) {
+                System.out.println(name + " says UNO!");
+            }
+            return;
+        }
+        boolean saidUno = true;
+        if (humanPlayers.get(currentPlayer).booleanValue()) {
+            saidUno = console.askUno(scanner);
+        }
+        if (saidUno) {
+            if (!quiet) {
+                System.out.println(name + " says UNO!");
+            }
+        } else {
+            unoPenalty.set(currentPlayer, Boolean.TRUE);
+            if (!quiet) {
+                System.out.println(name + " forgot UNO.");
+            }
+        }
+    }
+
+    void finishRound(String name) {
+        int points = 0;
+        for (int i = 0; i < hands.size(); i++) {
+            if (i != currentPlayer) {
+                for (int j = 0; j < hands.get(i).size(); j++) {
+                    points += rules.points(hands.get(i).get(j));
+                }
+            }
+        }
+        scores[currentPlayer] += points;
+        hasWinner = true;
+        winnerName = name;
+        winnerPoints = points;
+        log.info("{} wins, +{}", name, points);
+        if (!quiet) {
+            System.out.println(name + " wins and scores " + points);
+        }
+    }
+
+    void applyOpeningCardEffect(String card) {
+        CardRank rank = rules.rankOf(card);
+        if (rank == CardRank.SKIP) {
+            if (!quiet) {
+                System.out.println("Opening skip skips " + playerNames.get(currentPlayer));
+            }
+            next();
+        } else if (rank == CardRank.REVERSE) {
+            direction = direction * -1;
+            if (!quiet) {
+                System.out.println("Opening reverse, direction " + directionLabel());
+            }
+            if (playerNames.size() == 2) {
+                next();
+            }
+        } else if (rank == CardRank.DRAW_TWO) {
+            if (!quiet) {
+                System.out.println(playerNames.get(currentPlayer) + " draws two on opening card.");
+            }
+            drawCards(hands.get(currentPlayer), 2);
+            next();
+        }
+    }
+
+    void applyCardEffect(String card, ArrayList<String> handBefore) {
         CardRank rank = rules.rankOf(card);
         if (rank == CardRank.SKIP) {
             next();
             next();
         } else if (rank == CardRank.REVERSE) {
             direction = direction * -1;
+            if (!quiet) {
+                System.out.println("Direction " + directionLabel());
+            }
             if (playerNames.size() == 2) {
                 next();
                 next();
@@ -218,24 +422,89 @@ public class GameService implements Game {
                 next();
             }
         } else if (rank == CardRank.DRAW_TWO) {
-            next();
-            hands.get(currentPlayer).add(draw());
-            hands.get(currentPlayer).add(draw());
-            if (!quiet) {
-                System.out.println(playerNames.get(currentPlayer) + " draws two.");
+            if (options.stackDraws && pendingDraws > 0) {
+                pendingDraws += 2;
+                if (!quiet) {
+                    System.out.println("Draw stack now " + pendingDraws);
+                }
+                next();
+            } else {
+                pendingDraws = 2;
+                pendingDrawRank = CardRank.DRAW_TWO;
+                next();
+                if (!resolveDrawPenalty(false)) {
+                    next();
+                }
             }
-            next();
         } else if (rank == CardRank.WILD_DRAW_FOUR) {
-            next();
-            for (int i = 0; i < 4; i++) {
-                hands.get(currentPlayer).add(draw());
+            if (options.stackDraws && pendingDraws > 0) {
+                pendingDraws += 4;
+                pendingDrawRank = CardRank.WILD_DRAW_FOUR;
+                if (!quiet) {
+                    System.out.println("Draw stack now " + pendingDraws);
+                }
+                next();
+            } else {
+                pendingDraws = 4;
+                pendingDrawRank = CardRank.WILD_DRAW_FOUR;
+                next();
+                if (!resolveDrawPenalty(true)) {
+                    next();
+                }
             }
-            if (!quiet) {
-                System.out.println(playerNames.get(currentPlayer) + " draws four.");
-            }
-            next();
         } else {
+            pendingDraws = 0;
+            pendingDrawRank = null;
             next();
+        }
+    }
+
+    boolean resolveDrawPenalty(boolean wildDrawFour) {
+        String victim = playerNames.get(currentPlayer);
+        ArrayList<String> hand = hands.get(currentPlayer);
+        boolean challenged = false;
+
+        if (wildDrawFour && options.w4Challenge) {
+            if (humanPlayers.get(currentPlayer).booleanValue()) {
+                challenged = console.askChallenge(scanner);
+            } else {
+                challenged = bot.willChallenge();
+            }
+        }
+
+        if (challenged) {
+            if (lastW4HadColorMatch) {
+                ArrayList<String> w4Hand = hands.get(lastW4Player);
+                drawCards(w4Hand, 4);
+                if (!quiet) {
+                    System.out.println(playerNames.get(lastW4Player) + " draws 4, challenge succeeded.");
+                }
+                pendingDraws = 0;
+                pendingDrawRank = null;
+                return true;
+            } else {
+                drawCards(hand, 6);
+                if (!quiet) {
+                    System.out.println(victim + " draws 6, challenge failed.");
+                }
+                pendingDraws = 0;
+                pendingDrawRank = null;
+                return true;
+            }
+        }
+
+        drawCards(hand, pendingDraws);
+        if (!quiet) {
+            System.out.println(victim + " draws " + pendingDraws + ".");
+        }
+        pendingDraws = 0;
+        pendingDrawRank = null;
+        return false;
+    }
+
+    void drawCards(ArrayList<String> hand, int count) {
+        for (int i = 0; i < count; i++) {
+            hand.add(draw());
         }
     }
 
@@ -253,6 +522,29 @@ public class GameService implements Game {
         }
     }
 
+    ArrayList<String> handForLegal(ArrayList<String> hand) {
+        if (options.w4OnlyWithoutColor) {
+            return hand;
+        }
+        return null;
+    }
+
+    String directionLabel() {
+        return direction > 0 ? "clockwise" : "counter-clockwise";
+    }
+
+    String colorSuffix() {
+        return calledColor.equals("") ? "" : " called " + calledColor;
+    }
+
+    static ArrayList<String> copyHand(ArrayList<String> hand) {
+        ArrayList<String> copy = new ArrayList<String>();
+        for (int i = 0; i < hand.size(); i++) {
+            copy.add(hand.get(i));
+        }
+        return copy;
+    }
+
     static String join(ArrayList<String> cards) {
         String out = "";
         for (int i = 0; i < cards.size(); i++) {
@@ -262,5 +554,17 @@ public class GameService implements Game {
             }
         }
         return out;
+    }
+
+    public boolean hasWinner() {
+        return hasWinner;
+    }
+
+    public String winnerName() {
+        return winnerName;
+    }
+
+    public int winnerPoints() {
+        return winnerPoints;
     }
 }
