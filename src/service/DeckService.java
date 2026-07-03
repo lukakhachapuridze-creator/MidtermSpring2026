@@ -1,3 +1,7 @@
+package service;
+
+import interfaces.Deck;
+import model.CardColor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;

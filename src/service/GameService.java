@@ -1,3 +1,11 @@
+package service;
+
+import interfaces.BotPlayer;
+import interfaces.CardRules;
+import interfaces.ConsoleInput;
+import interfaces.Deck;
+import interfaces.Game;
+import model.CardRank;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;

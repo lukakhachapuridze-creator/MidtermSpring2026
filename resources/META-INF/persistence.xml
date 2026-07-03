@@ -5,10 +5,10 @@
              version="3.0">
     <persistence-unit name="uno" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <class>PlayerRecord</class>
-        <class>GameRecord</class>
-        <class>RoundRecord</class>
-        <class>RoundScoreRecord</class>
+        <class>persistence.PlayerRecord</class>
+        <class>persistence.GameRecord</class>
+        <class>persistence.RoundRecord</class>
+        <class>persistence.RoundScoreRecord</class>
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver"/>
             <property name="jakarta.persistence.jdbc.url" value="jdbc:h2:file:./data/uno"/>

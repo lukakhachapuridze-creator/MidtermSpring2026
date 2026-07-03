@@ -1,3 +1,9 @@
+package service;
+
+import interfaces.BotPlayer;
+import interfaces.CardRules;
+import model.CardColor;
+import model.CardRank;
 import java.util.ArrayList;
 
 public class BotPlayerService implements BotPlayer {

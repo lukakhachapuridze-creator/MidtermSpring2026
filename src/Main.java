@@ -1,9 +1,25 @@
+import interfaces.BotPlayer;
+import interfaces.CardRules;
+import interfaces.ConsoleInput;
+import interfaces.Deck;
+import interfaces.Game;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
+import persistence.GameRecord;
+import persistence.PersistenceService;
+import persistence.PlayerRecord;
+import persistence.RoundRecord;
+import persistence.TopScoreRow;
+import persistence.WinCountRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import service.BotPlayerService;
+import service.CardRulesService;
+import service.ConsoleInputService;
+import service.DeckService;
+import service.GameService;
 
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);

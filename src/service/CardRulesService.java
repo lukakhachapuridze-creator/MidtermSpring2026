@@ -1,3 +1,9 @@
+package service;
+
+import interfaces.CardRules;
+import model.CardColor;
+import model.CardRank;
+
 public class CardRulesService implements CardRules {
     public boolean isLegal(String card, String up, String call) {
         if (card.startsWith("W")) {

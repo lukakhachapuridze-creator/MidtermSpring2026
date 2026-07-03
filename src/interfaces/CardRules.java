@@ -1,3 +1,8 @@
+package interfaces;
+
+import model.CardColor;
+import model.CardRank;
+
 public interface CardRules {
     boolean isLegal(String card, String up, String call);
 

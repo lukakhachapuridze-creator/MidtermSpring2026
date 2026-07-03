@@ -2,6 +2,13 @@ import java.util.Arrays;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import persistence.GameRecord;
+import persistence.PersistenceService;
+import persistence.PlayerRecord;
+import persistence.RoundRecord;
+import persistence.RoundScoreRecord;
+import persistence.TopScoreRow;
+import persistence.WinCountRow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

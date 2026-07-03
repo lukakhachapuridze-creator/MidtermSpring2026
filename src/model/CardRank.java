@@ -1,3 +1,5 @@
+package model;
+
 public enum CardRank {
     WILD,
     WILD_DRAW_FOUR,

@@ -1,3 +1,5 @@
+package persistence;
+
 public class TopScoreRow {
     private String name;
     private int totalScore;

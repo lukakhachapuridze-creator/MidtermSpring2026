@@ -1,3 +1,8 @@
+package service;
+
+import interfaces.CardRules;
+import interfaces.ConsoleInput;
+import model.CardColor;
 import java.util.ArrayList;
 import java.util.Scanner;
 

@@ -1,3 +1,10 @@
+import interfaces.BotPlayer;
+import interfaces.CardRules;
+import interfaces.Deck;
+import model.CardRank;
+import service.BotPlayerService;
+import service.CardRulesService;
+import service.DeckService;
 import java.util.ArrayList;
 
 public class CharacterizationTest {

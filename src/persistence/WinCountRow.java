@@ -1,3 +1,5 @@
+package persistence;
+
 public class WinCountRow {
     private String name;
     private long wins;
